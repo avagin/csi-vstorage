@@ -28,7 +28,7 @@ import (
 
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/kolyshkin/goploop-cli"
-	"github.com/kubernetes-csi/drivers/pkg/csi-common"
+	"github.com/avagin/csi-vstorage/pkg/csi-common"
 	"github.com/pborman/uuid"
 )
 

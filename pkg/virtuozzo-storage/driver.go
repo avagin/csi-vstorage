@@ -20,7 +20,7 @@ import (
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/golang/glog"
 
-	"github.com/kubernetes-csi/drivers/pkg/csi-common"
+	"github.com/avagin/csi-vstorage/pkg/csi-common"
 )
 
 type driver struct {

@@ -23,7 +23,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	vstorage "github.com/kubernetes-csi/drivers/pkg/virtuozzo-storage"
+	vstorage "github.com/avagin/csi-vstorage/pkg/virtuozzo-storage"
 )
 
 var (
