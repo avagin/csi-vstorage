@@ -55,7 +55,9 @@ func prepareVstorage(clusterName, clusterPasswd string, mount string) error {
 		return err
 	}
 
-	v := vstorage.Vstorage{clusterName}
+	v := vstorage.Vstorage{
+		Name: clusterName,
+	}
 	p, _ := v.Mountpoint()
 	if p != "" {
 		return syscall.Mount(p, mount, "", syscall.MS_BIND, "")
