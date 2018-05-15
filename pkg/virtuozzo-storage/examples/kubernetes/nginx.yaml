@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-vstorageplugin
+  labels:
+    name: data-vstorageplugin
+spec:
+  accessModes:
+  - ReadWriteMany
+  capacity:
+    storage: 100Gi
+  csi:
+    driver: csi-vstorageplugin
+    volumeHandle: data-id
+    volumeAttributes: 
+      cluster: avagin-kube
+      passwd: wN8i9t
+      volume: k8s/test
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data-vstorageplugin
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  selector:
+    matchExpressions:
+    - key: name
+      operator: In
+      values: ["data-vstorageplugin"]
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx 
+spec:
+  containers:
+  - image: maersk/nginx
+    imagePullPolicy: Always
+    name: nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    volumeMounts:
+      - mountPath: /var/www
+        name: data-vstorageplugin 
+  volumes:
+  - name: data-vstorageplugin
+    persistentVolumeClaim:
+      claimName: data-vstorageplugin 

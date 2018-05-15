@@ -1,9 +1,3 @@
-# Binaries for programs and plugins
-*.exe
-*.dll
-*.so
-*.dylib
-
 # Test binary, build with `go test -c`
 *.test
 
@@ -12,3 +6,34 @@
 
 # Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
 .glide/
+
+# This is where the result of the go build goes
+/output*/
+/_output*/
+/_output
+
+# Emacs save files
+*~
+\#*\#
+.\#*
+
+# Vim-related files
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+*.un~
+Session.vim
+.netrwhist
+
+# cscope-related files
+cscope.*
+
+# direnv .envrc files
+.envrc
+
+# This file used by some vendor repos (e.g. github.com/go-openapi/...) to store secret variables and should not be ignored
+!\.drone\.sec
+
+# Godeps or dep workspace
+/Godeps/_workspace
+vendor
+vendor.*

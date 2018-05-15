@@ -1,0 +1,25 @@
+# This YAML file contains nginx & csi vstorage driver objects,
+# which are necessary to run nginx with csi vstorage driver.
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-sc-vstorageplugin
+provisioner: csi-vstorageplugin
+parameters:
+      cluster: avagin-kube
+      passwd: wN8i9t
+      volumePath: k8s
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: csi-pvc-vstorageplugin
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: csi-sc-vstorageplugin

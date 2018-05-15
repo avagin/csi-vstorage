@@ -1,0 +1,23 @@
+# This YAML file contains nginx & csi vstorage driver objects,
+# which are necessary to run nginx with csi vstorage driver.
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx 
+spec:
+  containers:
+  - image: nginx
+    imagePullPolicy: IfNotPresent
+    name: nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    volumeMounts:
+      - mountPath: /var/lib/www/html
+        name: csi-data-vstorageplugin 
+  volumes:
+  - name: csi-data-vstorageplugin
+    persistentVolumeClaim:
+      claimName: csi-pvc-vstorageplugin
+      readOnly: false

@@ -1,0 +1,68 @@
+# This YAML file contains attacher & csi driver API objects,
+# which are necessary to run external csi provisioner for Virtuozzo Storage.
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: csi-provisioner-vstorageplugin
+  labels:
+    app: csi-provisioner-vstorageplugin
+spec:
+  selector:
+    app: csi-provisioner-vstorageplugin
+  ports:
+    - name: dummy
+      port: 12345
+
+---
+kind: StatefulSet
+apiVersion: apps/v1beta1
+metadata:
+  name: csi-provisioner-vstorageplugin
+spec:
+  serviceName: "csi-provisioner-vstorageplugin"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: csi-provisioner-vstorageplugin
+    spec:
+      hostNetwork: true
+      serviceAccount: csi-provisioner
+      containers:
+        - name: csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v0.2.0
+          args:
+            - "--provisioner=csi-vstorageplugin"
+            - "--csi-address=$(ADDRESS)"
+          env:
+            - name: ADDRESS
+              value: /var/lib/csi/sockets/pluginproxy/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /var/lib/csi/sockets/pluginproxy/
+        - name: vstorage
+          securityContext:
+            privileged: true
+            capabilities:
+              add: ["SYS_ADMIN"]
+            allowPrivilegeEscalation: true
+          image: docker.io/avagin/vstorageplugin:v0.2.0
+          args :
+            - "--nodeid=$(NODE_ID)"
+            - "--endpoint=$(CSI_ENDPOINT)"
+          env:
+            - name: NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: CSI_ENDPOINT
+              value: unix://plugin/csi.sock
+          imagePullPolicy: "IfNotPresent"
+          volumeMounts:
+            - name: socket-dir
+              mountPath: /plugin
+      volumes:
+        - name: socket-dir
+          emptyDir:
