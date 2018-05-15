@@ -7,9 +7,8 @@ metadata:
   name: csi-sc-vstorageplugin
 provisioner: csi-vstorageplugin
 parameters:
-      cluster: avagin-kube
-      passwd: wN8i9t
-      volumePath: k8s
+      csiProvisionerSecretNamespace: "default"
+      csiProvisionerSecretName: "virtuozzo-secret"
 
 ---
 apiVersion: v1

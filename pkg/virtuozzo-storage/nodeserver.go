@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume/util"
 
+	"github.com/golang/glog"
 	"github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"github.com/kubernetes-csi/drivers/pkg/virtuozzo-storage/vstorage"
 )
@@ -114,6 +115,9 @@ func umountPloop(statePath string) error {
 }
 
 func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublishVolumeRequest) (*csi.NodePublishVolumeResponse, error) {
+
+	glog.Infof("NodePublishVolume id %s target %s", req.GetTargetPath(), req.GetVolumeId())
+
 	targetPath := req.GetTargetPath()
 	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
 	if err != nil {
@@ -137,9 +141,9 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	readonly := req.GetReadonly()
-	options := req.GetVolumeAttributes()
-	cluster := req.GetVolumeAttributes()["cluster"]
-	passwd := req.GetVolumeAttributes()["passwd"]
+	secret := req.GetNodePublishSecrets()
+	cluster := secret["clusterName"]
+	passwd := secret["clusterPassword"]
 
 	mount := filepath.Join(workingDir, cluster)
 	if err := prepareVstorage(cluster, passwd, mount); err != nil {
@@ -147,10 +151,10 @@ func (ns *nodeServer) NodePublishVolume(ctx context.Context, req *csi.NodePublis
 	}
 
 	path := mount
-	if options["volumePath"] != "" {
-		path = filepath.Join(path, options["volumePath"])
+	if secret["volumePath"] != "" {
+		path = filepath.Join(path, secret["volumePath"])
 	}
-	path = filepath.Join(path, options["volumeID"])
+	path = filepath.Join(path, req.GetVolumeId())
 	volume, err := ploop.Open(filepath.Join(path, "DiskDescriptor.xml"))
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())

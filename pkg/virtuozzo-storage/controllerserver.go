@@ -45,19 +45,21 @@ type controllerServer struct {
 const provisionerDir = "/export/virtuozzo-provisioner/"
 const mountDir = provisionerDir + "mnt/"
 
-func createPloop(mount string, options map[string]string, bytes uint64) error {
+func createPloop(volumeID, mount string, secret map[string]string, options map[string]string, bytes uint64) error {
 	var (
-		volumePath, deltasPath, volumeID string
+		volumePath, deltasPath string
 	)
 
-	for k, v := range options {
+	for k, v := range secret {
 		switch k {
 		case "volumePath":
 			volumePath = v
 		case "deltasPath":
 			deltasPath = v
-		case "volumeID":
-			volumeID = v
+		}
+	}
+	for k, v := range options {
+		switch k {
 		case "vzsReplicas":
 		case "vzsFailureDomain":
 		case "vzsEncoding":
@@ -65,6 +67,7 @@ func createPloop(mount string, options map[string]string, bytes uint64) error {
 		case "kubernetes.io/readwrite":
 		case "kubernetes.io/fsType":
 		default:
+			glog.Errorf("Unknown parameter: %v = %v", k, v)
 		}
 	}
 
@@ -148,16 +151,15 @@ func createPloop(mount string, options map[string]string, bytes uint64) error {
 	return nil
 }
 
-func removePloop(mount string, options map[string]string) error {
+func removePloop(volumeID, mount string, options map[string]string) error {
 	volumePath := options["volumePath"]
-	volumeID := options["volumeID"]
 	deltasPath, ok := options["deltasPath"]
 	if !ok {
 		deltasPath = volumePath
 	}
 	imageDir := path.Join(mount, deltasPath, volumeID+".image")
-	ploopPath := path.Join(mount, options["volumePath"], options["volumeID"])
-	ploopPathTmp := path.Join(mount, options["volumePath"], options["volumeID"]+".deleted")
+	ploopPath := path.Join(mount, options["volumePath"], volumeID)
+	ploopPathTmp := path.Join(mount, options["volumePath"], volumeID+".deleted")
 	err := os.Rename(ploopPath, ploopPathTmp)
 	if err != nil {
 		return err
@@ -201,17 +203,18 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 	for k, v := range req.GetParameters() {
 		storageClassOptions[k] = v
 	}
-	share := fmt.Sprintf("kubernetes-dynamic-pvc-%s", volName)
-	storageClassOptions["volumeID"] = share
 	storageClassOptions["size"] = fmt.Sprintf("%d", volSizeBytes)
-	cluster := storageClassOptions["cluster"]
-	password := storageClassOptions["passwd"]
+
+	secret := req.GetControllerCreateSecrets()
+	cluster := secret["clusterName"]
+	password := secret["clusterPassword"]
+
 	mount := filepath.Join(workingDir, cluster)
 	if err := prepareVstorage(cluster, password, mount); err != nil {
 		return nil, err
 	}
 
-	if err := createPloop(mount, storageClassOptions, volSizeBytes); err != nil {
+	if err := createPloop(volName, mount, secret, storageClassOptions, volSizeBytes); err != nil {
 		return nil, err
 	}
 
@@ -224,6 +227,19 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 }
 
 func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVolumeRequest) (*csi.DeleteVolumeResponse, error) {
+	volumeID := req.GetVolumeId()
+	secret := req.GetControllerDeleteSecrets()
+
+	cluster := secret["clusterName"]
+	password := secret["clusterPassword"]
+	mount := filepath.Join(workingDir, cluster)
+	if err := prepareVstorage(cluster, password, mount); err != nil {
+		return nil, err
+	}
+
+	if err := removePloop(volumeID, mount, secret); err != nil {
+		return nil, err
+	}
 
 	return &csi.DeleteVolumeResponse{}, nil
 }
