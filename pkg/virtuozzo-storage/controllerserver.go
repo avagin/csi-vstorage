@@ -26,9 +26,9 @@ import (
 	"github.com/golang/glog"
 	"golang.org/x/net/context"
 
+	"github.com/avagin/csi-vstorage/pkg/csi-common"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/kolyshkin/goploop-cli"
-	"github.com/avagin/csi-vstorage/pkg/csi-common"
 	"github.com/pborman/uuid"
 )
 

@@ -32,9 +32,9 @@ import (
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume/util"
 
-	"github.com/golang/glog"
 	"github.com/avagin/csi-vstorage/pkg/csi-common"
 	"github.com/avagin/csi-vstorage/pkg/virtuozzo-storage/vstorage"
+	"github.com/golang/glog"
 )
 
 type nodeServer struct {
@@ -55,7 +55,9 @@ func prepareVstorage(clusterName, clusterPasswd string, mount string) error {
 		return err
 	}
 
-	v := vstorage.Vstorage{clusterName}
+	v := vstorage.Vstorage{
+		Name: clusterName,
+	}
 	p, _ := v.Mountpoint()
 	if p != "" {
 		return syscall.Mount(p, mount, "", syscall.MS_BIND, "")
