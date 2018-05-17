@@ -40,8 +40,8 @@ func main() {
 	flag.CommandLine.Parse([]string{})
 
 	cmd := &cobra.Command{
-		Use:   "NFS",
-		Short: "CSI based NFS driver",
+		Use:   "vstorageplugin",
+		Short: "CSI based Virtuozzo Storage driver",
 		Run: func(cmd *cobra.Command, args []string) {
 			handle()
 		},
