@@ -17,7 +17,9 @@ limitations under the License.
 package vstorage
 
 import (
+	"encoding/xml"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -187,6 +189,28 @@ func removePloop(volumeID, mount string, options map[string]string) error {
 	return nil
 }
 
+type DiskParameters struct {
+	DiskSize uint64 `xml:"Disk_size"`
+}
+
+type ParallelsDiskImage struct {
+	DiskParameters DiskParameters `xml:"Disk_Parameters"`
+}
+
+func getPloopCapacity(ploopPath string) (uint64, error) {
+	data, err := ioutil.ReadFile(filepath.Join(ploopPath, "DiskDescriptor.xml"))
+	if err != nil {
+		return 0, err
+	}
+
+	v := ParallelsDiskImage{}
+	err = xml.Unmarshal([]byte(data), &v)
+	if err != nil {
+		return 0, err
+	}
+	return v.DiskParameters.DiskSize * 512, nil
+}
+
 func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVolumeRequest) (*csi.CreateVolumeResponse, error) {
 	if err := cs.Driver.ValidateControllerServiceRequest(csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); err != nil {
 		glog.V(3).Infof("invalid create volume req: %v", req)
@@ -226,6 +250,31 @@ func (cs *controllerServer) CreateVolume(ctx context.Context, req *csi.CreateVol
 
 	mount := filepath.Join(workingDir, cluster)
 	if err := prepareVstorage(cluster, password, mount); err != nil {
+		return nil, err
+	}
+
+	volumeDir := path.Join(mount, secret["volumePath"])
+	ploopPath := path.Join(volumeDir, volName)
+
+	_, err := os.Stat(ploopPath)
+	if err == nil {
+		capacity, err := getPloopCapacity(ploopPath)
+		if err != nil {
+			return nil, err
+		}
+		if capacity >= volSizeBytes {
+			return &csi.CreateVolumeResponse{
+				Volume: &csi.Volume{
+					Id:            volName,
+					Attributes:    storageClassOptions,
+					CapacityBytes: int64(volSizeBytes),
+				},
+			}, nil
+		} else {
+			return nil, status.Error(codes.AlreadyExists, fmt.Sprintf("Volume with the same name: %s but with different size already exist", req.GetName()))
+		}
+	}
+	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
 
