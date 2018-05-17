@@ -16,6 +16,9 @@
 
 all: vstorage vstorage-ct
 
+vstorage-test:
+	docker build -t csi-vstorage-test -f ./pkg/virtuozzo-storage/dockerfile/Dockerfile.test .
+	docker run --network=host --privileged csi-vstorage-test bash hack/vstorage-test.sh
 test:
 	go test github.com/kubernetes-csi/drivers/pkg/... -cover
 	go vet github.com/kubernetes-csi/drivers/pkg/...
