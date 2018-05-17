@@ -262,6 +262,15 @@ func (cs *controllerServer) DeleteVolume(ctx context.Context, req *csi.DeleteVol
 		return nil, err
 	}
 
+	ploopPath := path.Join(mount, secret["volumePath"], volumeID)
+	_, err := os.Stat(ploopPath)
+	if err != nil && os.IsNotExist(err) {
+		return &csi.DeleteVolumeResponse{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	if err := removePloop(volumeID, mount, secret); err != nil {
 		return nil, err
 	}
